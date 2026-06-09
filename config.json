@@ -1,0 +1,61 @@
+{
+  "jodoigne_coords": [
+    4.8697,
+    50.7236
+  ],
+  "max_jobs_on_site": 150,
+  "keywords_job": [
+    "instituteur primaire",
+    "institutrice primaire",
+    "maître primaire",
+    "maitre primaire",
+    "maitresse primaire",
+    "enseignant primaire",
+    "enseignante primaire",
+    "enseignement primaire"
+  ],
+  "keywords_fulltime": [
+    "temps plein",
+    "plein temps",
+    "24/24",
+    "full time",
+    "38h"
+  ],
+  "bad_location_words": [
+    "fermer",
+    "ouvrir",
+    "menu",
+    "connexion",
+    "postuler",
+    "rechercher",
+    "voir",
+    "suivant",
+    "précédent"
+  ],
+  "sources": {
+    "JobEcole": [
+      "https://www.jobecole.be/offres-emploi",
+      "https://www.jobecole.be/offres-emploi?start=15",
+      "https://www.jobecole.be/offres-emploi?start=30",
+      "https://www.jobecole.be/offres-emploi?start=45",
+      "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions",
+      "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions?start=15",
+      "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions?start=30",
+      "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/1-bruxelles-capitale",
+      "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/2-brabant-wallon",
+      "https://www.jobecole.be/offres-emploi/tous-niveaux-enseignement/4-namur",
+      "https://www.jobecole.be/offres-emploi/tous-niveaux-enseignement/5-liege"
+    ],
+    "Enseignons.be": [
+      "https://www.enseignons.be/jobs/"
+    ],
+    "Actiris": [
+      "https://www.actiris.brussels/fr/citoyens/emplois/enseignant-dans-l-enseignement-fondamental-T%276",
+      "https://www.actiris.brussels/fr/citoyens/emplois/enseignement-scolaire-T%276"
+    ],
+    "WBE": [
+      "https://www.wbe.be/jepostule/",
+      "https://www.wbe.be/jepostule/remplacement/"
+    ]
+  }
+}
