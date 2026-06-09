@@ -25,4 +25,5 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
+          ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
         run: python job_scout.py
