@@ -361,6 +361,20 @@ def extract_contract_duration(text):
 
 
 def extract_location_candidate(text):
+    title_location = re.search(
+        r"(?:instituteur primaire|institutrice primaire|enseignant primaire|enseignante primaire)\s+à\s+([A-Za-zÀ-ÿ'’\-\s]+)",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    if title_location:
+        candidate = clean_text(title_location.group(1))
+        candidate = candidate.split(" Source ")[0]
+        candidate = candidate.split(" Temps ")[0]
+        candidate = candidate.split(" Durée ")[0]
+
+        if candidate.lower() not in BAD_LOCATION_WORDS:
+            return candidate + ", Belgique"
     postcode_match = re.search(
         r"\b([1-9][0-9]{3})\s+([A-Za-zÀ-ÿ'’\-\s]{3,40})",
         text,
@@ -554,7 +568,7 @@ def main():
                 seen.add(job_id)
 
     if new_matches:
-        for job in new_matches[:10]:
+        for job in new_matches:
             analysis = job["analysis"]
 
             message = (
