@@ -4,7 +4,7 @@
     50.7236
   ],
   "max_jobs_on_site": 150,
-  "gemini_model": "gemini-3.5-flash",
+  "gemini_model": "gemini-3.1-flash-lite",
   "keywords_job": [
     "instituteur primaire",
     "institutrice primaire",
