@@ -1,14 +1,18 @@
 import json
-import requests
-from bs4 import BeautifulSoup
+import os
 from pathlib import Path
 
+import requests
+from bs4 import BeautifulSoup
 
-
-TELEGRAM_TOKEN = "8972333573:AAHQkjNoVe_uAbciQ7aL_Mm2TXiVWv6TrJ0"
-CHAT_ID = "7554156182"
+TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
+CHAT_ID = os.environ["CHAT_ID"]
+ORS_API_KEY = os.environ["ORS_API_KEY"]
 
 SEEN_FILE = Path("seen_jobs.json")
+
+JODOIGNE_COORDS = [4.8697, 50.7236]  # lon, lat
+MAX_DRIVE_MINUTES = 60
 
 URLS = [
     "https://www.jobecole.be/offres-emploi",
@@ -20,31 +24,6 @@ KEYWORDS_JOB = [
     "institutrice primaire",
     "maître primaire",
     "maitresse primaire",
-]
-
-KEYWORDS_FULLTIME = [
-    "temps plein",
-    "24/24",
-    "full time",
-    "plein temps",
-]
-
-KEYWORDS_LOCATION = [
-    "bruxelles",
-    "wallonie",
-    "namur",
-    "liège",
-    "liege",
-    "charleroi",
-    "mons",
-    "nivelles",
-    "wavre",
-    "ottignies",
-    "louvain-la-neuve",
-    "tournai",
-    "verviers",
-    "arlon",
-    "luxembourg",
 ]
 
 
@@ -73,12 +52,55 @@ def send_telegram(message):
 
 
 def fetch_html(url):
-    headers = {
-        "User-Agent": "Mozilla/5.0 JobScoutBot/1.0"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 JobScoutBot/1.0"}
     response = requests.get(url, headers=headers, timeout=20)
     response.raise_for_status()
     return response.text
+
+
+def geocode_location(text):
+    url = "https://api.openrouteservice.org/geocode/search"
+
+    params = {
+        "api_key": ORS_API_KEY,
+        "text": text,
+        "boundary.country": "BE",
+        "size": 1,
+    }
+
+    response = requests.get(url, params=params, timeout=20)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not data.get("features"):
+        return None
+
+    return data["features"][0]["geometry"]["coordinates"]
+
+
+def driving_minutes_from_jodoigne(destination_coords):
+    url = "https://api.openrouteservice.org/v2/directions/driving-car"
+
+    headers = {
+        "Authorization": ORS_API_KEY,
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "coordinates": [
+            JODOIGNE_COORDS,
+            destination_coords,
+        ]
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    response.raise_for_status()
+
+    data = response.json()
+    seconds = data["routes"][0]["summary"]["duration"]
+
+    return round(seconds / 60)
 
 
 def extract_possible_jobs(url):
@@ -105,16 +127,13 @@ def extract_possible_jobs(url):
                 if a and a.get("href"):
                     link = a.get("href")
 
-            if link:
-                if link.startswith("/"):
-                    base = "/".join(url.split("/")[:3])
-                    link = base + link
-            else:
-                link = url
+            if link and link.startswith("/"):
+                base = "/".join(url.split("/")[:3])
+                link = base + link
 
             jobs.append({
                 "title": text[:300],
-                "url": link,
+                "url": link or url,
                 "source": url,
             })
 
@@ -126,12 +145,24 @@ def is_match(job):
 
     has_job = any(keyword in text for keyword in KEYWORDS_JOB)
 
-    # On garde volontairement le filtre temps plein souple au début,
-    # car certains sites affichent le temps de travail uniquement sur la page détail.
-    has_fulltime = any(keyword in text for keyword in KEYWORDS_FULLTIME)
-    has_location = any(keyword in text for keyword in KEYWORDS_LOCATION)
+    if not has_job:
+        return False, None, "Pas instituteur primaire"
 
-    return has_job and (has_fulltime or has_location or True)
+    try:
+        coords = geocode_location(job["title"])
+
+        if coords is None:
+            return True, None, "Lieu non détecté — à vérifier"
+
+        minutes = driving_minutes_from_jodoigne(coords)
+
+        if minutes <= MAX_DRIVE_MINUTES:
+            return True, minutes, f"{minutes} min depuis Jodoigne"
+
+        return False, minutes, f"Trop loin : {minutes} min"
+
+    except Exception as e:
+        return True, None, f"Distance non calculée — à vérifier"
 
 
 def main():
@@ -147,7 +178,11 @@ def main():
             for job in jobs:
                 job_id = job["url"] + "|" + job["title"]
 
-                if job_id not in seen and is_match(job):
+                match, drive_minutes, reason = is_match(job)
+
+                if job_id not in seen and match:
+                    job["drive_minutes"] = drive_minutes
+                    job["reason"] = reason
                     new_matches.append(job)
                     seen.add(job_id)
 
@@ -159,6 +194,7 @@ def main():
             message = (
                 "Nouvelle offre possible 👇\n\n"
                 f"{job['title']}\n\n"
+                f"Trajet : {job.get('reason', 'Non calculé')}\n\n"
                 f"{job['url']}"
             )
             send_telegram(message)
