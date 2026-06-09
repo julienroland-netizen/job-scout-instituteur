@@ -334,7 +334,12 @@ def fetch_job_detail(job):
         job["detail_text"] = job["title"]
         job["detail_error"] = str(e)
         return job
-
+        
+def detect_fulltime(text):
+    lower = text.lower()
+    if any(keyword in lower for keyword in KEYWORDS_FULLTIME):
+        return "Temps plein probable"
+    return "Temps non confirmé"
 
 def extract_contract_duration(text):
     patterns = [
@@ -417,7 +422,7 @@ def extract_location_candidate(text):
 
     return None
 
-    
+
 def geocode_location(location_text):
     url = "https://api.openrouteservice.org/geocode/search"
 
