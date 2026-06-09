@@ -336,20 +336,20 @@ def fetch_job_detail(job):
         return job
 
 
-def detect_fulltime(text):
-    lower = text.lower()
-    if any(keyword in lower for keyword in KEYWORDS_FULLTIME):
-        return "Temps plein probable"
-    return "Temps non confirmé"
-
-
 def extract_contract_duration(text):
     patterns = [
         r"du\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+au\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+        r"du\s+\d{1,2}\s+[a-zéû]+\s+\d{4}\s+au\s+\d{1,2}\s+[a-zéû]+\s+\d{4}",
         r"jusqu['’]au\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+        r"jusqu['’]au\s+\d{1,2}\s+[a-zéû]+\s+\d{4}",
+        r"du\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+        r"à partir du\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
         r"année scolaire\s+\d{4}[-/]\d{4}",
-        r"contrat\s*[:\-]\s*([^\.|,;\n]{3,80})",
-        r"durée\s*[:\-]\s*([^\.|,;\n]{3,80})",
+        r"année\s+scolaire\s+\d{4}\s*-\s*\d{4}",
+        r"contrat\s*[:\-]\s*([^\.|,;\n]{3,120})",
+        r"durée\s*[:\-]\s*([^\.|,;\n]{3,120})",
+        r"date de début\s*[:\-]\s*([^\.|,;\n]{3,120})",
+        r"date de fin\s*[:\-]\s*([^\.|,;\n]{3,120})",
     ]
 
     for pattern in patterns:
@@ -362,19 +362,31 @@ def extract_contract_duration(text):
 
 def extract_location_candidate(text):
     title_location = re.search(
-        r"(?:instituteur primaire|institutrice primaire|enseignant primaire|enseignante primaire)\s+à\s+([A-Za-zÀ-ÿ'’\-\s]+)",
+        r"(?:instituteur primaire|institutrice primaire|enseignant primaire|enseignante primaire)\s+à\s+([A-Za-zÀ-ÿ'’\-]+(?:\s+[A-Za-zÀ-ÿ'’\-]+){0,2})",
         text,
         flags=re.IGNORECASE,
     )
 
     if title_location:
         candidate = clean_text(title_location.group(1))
-        candidate = candidate.split(" Source ")[0]
-        candidate = candidate.split(" Temps ")[0]
-        candidate = candidate.split(" Durée ")[0]
 
-        if candidate.lower() not in BAD_LOCATION_WORDS:
+        stop_words = [
+            "Offres",
+            "offres",
+            "Source",
+            "Temps",
+            "Durée",
+            "Trajet",
+            "Contrat",
+        ]
+
+        for stop in stop_words:
+            if stop in candidate:
+                candidate = candidate.split(stop)[0].strip()
+
+        if candidate and candidate.lower() not in BAD_LOCATION_WORDS:
             return candidate + ", Belgique"
+
     postcode_match = re.search(
         r"\b([1-9][0-9]{3})\s+([A-Za-zÀ-ÿ'’\-\s]{3,40})",
         text,
@@ -390,7 +402,6 @@ def extract_location_candidate(text):
 
     patterns = [
         r"(?:lieu|localité|localite|commune|adresse|implantation)\s*[:\-]\s*([^\.|,;\n]{3,80})",
-        r"(?:à|a)\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+){0,3})",
     ]
 
     for pattern in patterns:
@@ -406,7 +417,7 @@ def extract_location_candidate(text):
 
     return None
 
-
+    
 def geocode_location(location_text):
     url = "https://api.openrouteservice.org/geocode/search"
 
