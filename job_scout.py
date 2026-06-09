@@ -1,10 +1,10 @@
 import json
 import os
 import re
+import html
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urljoin
-import html
 
 import requests
 from bs4 import BeautifulSoup
@@ -14,17 +14,11 @@ CHAT_ID = os.environ["CHAT_ID"]
 ORS_API_KEY = os.environ["ORS_API_KEY"]
 
 SEEN_FILE = Path("seen_jobs.json")
-
 DOCS_DIR = Path("docs")
 JOBS_JSON = DOCS_DIR / "jobs.json"
 INDEX_HTML = DOCS_DIR / "index.html"
 
 JODOIGNE_COORDS = [4.8697, 50.7236]
-
-URLS = [
-    "https://www.jobecole.be/offres-emploi",
-    "https://www.enseignons.be/jobs/",
-]
 
 KEYWORDS_JOB = [
     "instituteur primaire",
@@ -34,6 +28,7 @@ KEYWORDS_JOB = [
     "maitresse primaire",
     "enseignant primaire",
     "enseignante primaire",
+    "enseignement primaire",
 ]
 
 KEYWORDS_FULLTIME = [
@@ -52,11 +47,20 @@ BAD_LOCATION_WORDS = [
     "postuler",
     "rechercher",
     "voir",
+    "suivant",
+    "précédent",
 ]
 
 
 def clean_text(text):
     return " ".join(text.replace("\n", " ").replace("\t", " ").split())
+
+
+def fetch_html(url):
+    headers = {"User-Agent": "Mozilla/5.0 JobScoutBot/1.0"}
+    response = requests.get(url, headers=headers, timeout=25)
+    response.raise_for_status()
+    return response.text
 
 
 def load_seen():
@@ -67,12 +71,6 @@ def load_seen():
 
 def save_seen(seen):
     SEEN_FILE.write_text(json.dumps(list(seen), indent=2))
-
-
-def load_public_jobs():
-    if JOBS_JSON.exists():
-        return json.loads(JOBS_JSON.read_text())
-    return []
 
 
 def save_public_jobs(jobs):
@@ -164,7 +162,7 @@ def generate_site(jobs):
 </head>
 <body>
     <h1>Job Scout Instituteur</h1>
-    <div class="subtitle">Offres détectées. Le trajet depuis Jodoigne est indiqué quand il peut être calculé.</div>
+    <div class="subtitle">Toutes les offres détectées. Telegram notifie uniquement les nouvelles.</div>
     <div class="meta">Dernière mise à jour : {generated_at}</div>
 
     <table>
@@ -190,29 +188,6 @@ def generate_site(jobs):
     INDEX_HTML.write_text(html_content, encoding="utf-8")
 
 
-def update_public_site(new_matches):
-    public_jobs = load_public_jobs()
-
-    for job in new_matches:
-        analysis = job["analysis"]
-
-        public_jobs.insert(0, {
-            "title": job["title"],
-            "url": job["url"],
-            "source": job["source"],
-            "location": analysis.get("location") or "Non détecté",
-            "drive_time": analysis.get("reason") or "À vérifier",
-            "time_status": analysis.get("time_status") or "Non confirmé",
-            "contract_duration": analysis.get("contract_duration") or "Durée non détectée",
-            "found_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        })
-
-    public_jobs = public_jobs[:100]
-
-    save_public_jobs(public_jobs)
-    generate_site(public_jobs)
-
-
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     response = requests.post(
@@ -227,14 +202,7 @@ def send_telegram(message):
     print(response.text)
 
 
-def fetch_html(url):
-    headers = {"User-Agent": "Mozilla/5.0 JobScoutBot/1.0"}
-    response = requests.get(url, headers=headers, timeout=25)
-    response.raise_for_status()
-    return response.text
-
-
-def extract_possible_jobs(list_url):
+def extract_jobs_from_listing(list_url, source_name):
     html_page = fetch_html(list_url)
     soup = BeautifulSoup(html_page, "html.parser")
 
@@ -247,17 +215,107 @@ def extract_possible_jobs(list_url):
         if len(text) < 5:
             continue
 
-        surrounding = clean_text(a.parent.get_text(" ", strip=True)) if a.parent else text
-        combined = f"{text} {surrounding}".lower()
+        parent_text = clean_text(a.parent.get_text(" ", strip=True)) if a.parent else text
+        combined = f"{text} {parent_text}".lower()
 
         if any(keyword in combined for keyword in KEYWORDS_JOB):
+            title = text if len(text) >= 5 else parent_text
+
             jobs[href] = {
-                "title": text[:250] if text else surrounding[:250],
+                "title": title[:250],
                 "url": href,
-                "source": list_url,
+                "source": source_name,
             }
 
     return list(jobs.values())
+
+
+def scrape_jobecole():
+    urls = [
+        "https://www.jobecole.be/offres-emploi",
+        "https://www.jobecole.be/offres-emploi?start=15",
+        "https://www.jobecole.be/offres-emploi?start=30",
+        "https://www.jobecole.be/offres-emploi?start=45",
+        "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions",
+        "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions?start=15",
+        "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/toutes-regions?start=30",
+        "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/1-bruxelles-capitale",
+        "https://www.jobecole.be/offres-emploi/fondamental/2-instituteur-primaire/2-brabant-wallon",
+        "https://www.jobecole.be/offres-emploi/tous-niveaux-enseignement/4-namur",
+        "https://www.jobecole.be/offres-emploi/tous-niveaux-enseignement/5-liege",
+    ]
+
+    jobs = []
+
+    for url in urls:
+        try:
+            print(f"Analyse JobEcole : {url}")
+            jobs.extend(extract_jobs_from_listing(url, "JobEcole"))
+        except Exception as e:
+            print(f"Erreur JobEcole sur {url}: {e}")
+
+    return jobs
+
+
+def scrape_enseignons():
+    urls = [
+        "https://www.enseignons.be/jobs/",
+    ]
+
+    jobs = []
+
+    for url in urls:
+        try:
+            print(f"Analyse Enseignons : {url}")
+            jobs.extend(extract_jobs_from_listing(url, "Enseignons.be"))
+        except Exception as e:
+            print(f"Erreur Enseignons sur {url}: {e}")
+
+    return jobs
+
+
+def scrape_actiris():
+    urls = [
+        "https://www.actiris.brussels/fr/citoyens/emplois/enseignant-dans-l-enseignement-fondamental-T%276",
+        "https://www.actiris.brussels/fr/citoyens/emplois/enseignement-scolaire-T%276",
+    ]
+
+    jobs = []
+
+    for url in urls:
+        try:
+            print(f"Analyse Actiris : {url}")
+            jobs.extend(extract_jobs_from_listing(url, "Actiris"))
+        except Exception as e:
+            print(f"Erreur Actiris sur {url}: {e}")
+
+    return jobs
+
+
+def scrape_wbe():
+    urls = [
+        "https://www.wbe.be/jepostule/",
+        "https://www.wbe.be/jepostule/remplacement/",
+    ]
+
+    jobs = []
+
+    for url in urls:
+        try:
+            print(f"Analyse WBE : {url}")
+            jobs.extend(extract_jobs_from_listing(url, "WBE"))
+        except Exception as e:
+            print(f"Erreur WBE sur {url}: {e}")
+
+    return jobs
+
+
+SCRAPERS = [
+    scrape_jobecole,
+    scrape_enseignons,
+    scrape_actiris,
+    scrape_wbe,
+]
 
 
 def fetch_job_detail(job):
@@ -440,29 +498,60 @@ def analyze_job(job):
         }
 
 
+def build_site_job(job, analysis):
+    return {
+        "title": job["title"],
+        "url": job["url"],
+        "source": job["source"],
+        "location": analysis.get("location") or "Non détecté",
+        "drive_time": analysis.get("reason") or "À vérifier",
+        "time_status": analysis.get("time_status") or "Non confirmé",
+        "contract_duration": analysis.get("contract_duration") or "Durée non détectée",
+        "found_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+    }
+
+
+def deduplicate_jobs(jobs):
+    unique = {}
+
+    for job in jobs:
+        key = job["url"]
+        unique[key] = job
+
+    return list(unique.values())
+
+
 def main():
     seen = load_seen()
     new_matches = []
+    all_matches = []
 
-    for url in URLS:
-        print(f"Analyse de {url}")
+    all_jobs = []
 
+    for scraper in SCRAPERS:
         try:
-            jobs = extract_possible_jobs(url)
-
-            for job in jobs:
-                job = fetch_job_detail(job)
-                job_id = job["url"]
-
-                match, analysis = analyze_job(job)
-
-                if job_id not in seen and match:
-                    job["analysis"] = analysis
-                    new_matches.append(job)
-                    seen.add(job_id)
-
+            all_jobs.extend(scraper())
         except Exception as e:
-            print(f"Erreur sur {url}: {e}")
+            print(f"Erreur scraper {scraper.__name__}: {e}")
+
+    all_jobs = deduplicate_jobs(all_jobs)
+
+    print(f"{len(all_jobs)} offre(s) candidate(s) trouvée(s).")
+
+    for job in all_jobs:
+        job = fetch_job_detail(job)
+        job_id = job["url"]
+
+        match, analysis = analyze_job(job)
+
+        if match:
+            site_job = build_site_job(job, analysis)
+            all_matches.append(site_job)
+
+            if job_id not in seen:
+                job["analysis"] = analysis
+                new_matches.append(job)
+                seen.add(job_id)
 
     if new_matches:
         for job in new_matches[:10]:
@@ -471,6 +560,7 @@ def main():
             message = (
                 "Nouvelle offre possible 👇\n\n"
                 f"{job['title']}\n\n"
+                f"Source : {job['source']}\n"
                 f"Temps : {analysis.get('time_status')}\n"
                 f"Durée : {analysis.get('contract_duration')}\n"
                 f"Lieu : {analysis.get('location') or 'Non détecté'}\n"
@@ -482,7 +572,10 @@ def main():
     else:
         print("Aucune nouvelle offre.")
 
-    update_public_site(new_matches)
+    all_matches = all_matches[:150]
+
+    save_public_jobs(all_matches)
+    generate_site(all_matches)
     save_seen(seen)
 
 
