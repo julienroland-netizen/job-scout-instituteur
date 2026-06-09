@@ -9,9 +9,14 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,3 +32,11 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
         run: python job_scout.py
+
+      - name: Commit generated site
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs seen_jobs.json
+          git commit -m "Update job listing site" || echo "No changes to commit"
+          git push || echo "Nothing to push"
