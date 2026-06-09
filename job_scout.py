@@ -301,21 +301,40 @@ def analyze_with_gemini(job_text):
     prompt = f"""
 Tu analyses une offre d'emploi d'instituteur primaire en Belgique.
 
-Objectif: extraire uniquement les informations explicitement présentes ou raisonnablement déductibles du texte.
-Ne devine pas si l'information n'est pas présente.
+Objectif : extraire la durée du contrat en te basant sur tout le contexte disponible.
+Tu peux utiliser des indices comme :
+- date de début
+- date de fin
+- année scolaire
+- remplacement
+- CDD / CDI
+- "jusqu'à la fin de l'année scolaire"
+- "entrée en fonction"
+- "fonction à pourvoir"
+- "du ... au ..."
+- "24/24"
 
-Réponds uniquement en JSON valide, sans markdown, avec ces champs:
+Si la durée exacte n'est pas indiquée, résume la meilleure information disponible.
+Exemples :
+- "À partir du 26/08/2026, fin non précisée"
+- "Année scolaire 2026-2027"
+- "Remplacement, durée non précisée"
+- "CDI, durée indéterminée"
+- "Durée non détectée"
+
+Réponds uniquement en JSON valide, sans markdown :
+
 {{
-  "contract_duration": "durée lisible du contrat ou 'Durée non détectée'",
+  "contract_duration": "durée lisible du contrat ou meilleure information disponible",
   "start_date": "date de début au format YYYY-MM-DD ou null",
   "end_date": "date de fin au format YYYY-MM-DD ou null",
-  "contract_type": "CDD, CDI, remplacement, année scolaire, intérim, ou 'Type non détecté'",
-  "time_status": "Temps plein, temps partiel, ou 'Temps non confirmé'",
+  "contract_type": "CDD, CDI, remplacement, année scolaire, intérim, ou Type non détecté",
+  "time_status": "Temps plein, temps partiel, ou Temps non confirmé",
   "location": "commune/lieu court, sans Belgique, ou null",
   "confidence": 0.0
 }}
 
-Texte de l'annonce:
+Texte de l'annonce :
 {job_text[:7000]}
 """
 
