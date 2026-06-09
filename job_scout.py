@@ -20,7 +20,6 @@ JOBS_JSON = DOCS_DIR / "jobs.json"
 INDEX_HTML = DOCS_DIR / "index.html"
 
 JODOIGNE_COORDS = [4.8697, 50.7236]
-MAX_DRIVE_MINUTES = 60
 
 URLS = [
     "https://www.jobecole.be/offres-emploi",
@@ -45,6 +44,20 @@ KEYWORDS_FULLTIME = [
     "38h",
 ]
 
+BAD_LOCATION_WORDS = [
+    "fermer",
+    "ouvrir",
+    "menu",
+    "connexion",
+    "postuler",
+    "rechercher",
+    "voir",
+]
+
+
+def clean_text(text):
+    return " ".join(text.replace("\n", " ").replace("\t", " ").split())
+
 
 def load_seen():
     if SEEN_FILE.exists():
@@ -68,9 +81,6 @@ def save_public_jobs(jobs):
 
 
 def generate_site(jobs):
-    print("GENERATE_SITE CALLED")
-    print(f"Nombre d'offres dans le site : {len(jobs)}")
-
     DOCS_DIR.mkdir(exist_ok=True)
 
     rows = ""
@@ -82,6 +92,7 @@ def generate_site(jobs):
             location = html.escape(job.get("location", "Non détecté"))
             drive_time = html.escape(job.get("drive_time", "À vérifier"))
             time_status = html.escape(job.get("time_status", "Non confirmé"))
+            contract_duration = html.escape(job.get("contract_duration", "Durée non détectée"))
             source = html.escape(job.get("source", ""))
             found_at = html.escape(job.get("found_at", ""))
 
@@ -91,6 +102,7 @@ def generate_site(jobs):
                 <td>{location}</td>
                 <td>{drive_time}</td>
                 <td>{time_status}</td>
+                <td>{contract_duration}</td>
                 <td>{source}</td>
                 <td>{found_at}</td>
             </tr>
@@ -98,7 +110,7 @@ def generate_site(jobs):
     else:
         rows = """
         <tr>
-            <td colspan="6">Aucune offre détectée pour le moment.</td>
+            <td colspan="7">Aucune offre détectée pour le moment.</td>
         </tr>
         """
 
@@ -152,7 +164,7 @@ def generate_site(jobs):
 </head>
 <body>
     <h1>Job Scout Instituteur</h1>
-    <div class="subtitle">Offres détectées à maximum 1h de Jodoigne ou à vérifier manuellement.</div>
+    <div class="subtitle">Offres détectées. Le trajet depuis Jodoigne est indiqué quand il peut être calculé.</div>
     <div class="meta">Dernière mise à jour : {generated_at}</div>
 
     <table>
@@ -160,8 +172,9 @@ def generate_site(jobs):
             <tr>
                 <th>Offre</th>
                 <th>Lieu</th>
-                <th>Trajet</th>
+                <th>Trajet depuis Jodoigne</th>
                 <th>Temps</th>
+                <th>Durée contrat</th>
                 <th>Source</th>
                 <th>Détectée le</th>
             </tr>
@@ -173,8 +186,9 @@ def generate_site(jobs):
 </body>
 </html>
 """
-    print("Writing docs/index.html")
+
     INDEX_HTML.write_text(html_content, encoding="utf-8")
+
 
 def update_public_site(new_matches):
     public_jobs = load_public_jobs()
@@ -189,6 +203,7 @@ def update_public_site(new_matches):
             "location": analysis.get("location") or "Non détecté",
             "drive_time": analysis.get("reason") or "À vérifier",
             "time_status": analysis.get("time_status") or "Non confirmé",
+            "contract_duration": analysis.get("contract_duration") or "Durée non détectée",
             "found_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         })
 
@@ -217,10 +232,6 @@ def fetch_html(url):
     response = requests.get(url, headers=headers, timeout=25)
     response.raise_for_status()
     return response.text
-
-
-def clean_text(text):
-    return " ".join(text.replace("\n", " ").replace("\t", " ").split())
 
 
 def extract_possible_jobs(list_url):
@@ -274,12 +285,35 @@ def detect_fulltime(text):
     return "Temps non confirmé"
 
 
+def extract_contract_duration(text):
+    patterns = [
+        r"du\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\s+au\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+        r"jusqu['’]au\s+\d{1,2}[/-]\d{1,2}[/-]\d{2,4}",
+        r"année scolaire\s+\d{4}[-/]\d{4}",
+        r"contrat\s*[:\-]\s*([^\.|,;\n]{3,80})",
+        r"durée\s*[:\-]\s*([^\.|,;\n]{3,80})",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return clean_text(match.group(0))
+
+    return "Durée non détectée"
+
+
 def extract_location_candidate(text):
     postcode_match = re.search(
         r"\b([1-9][0-9]{3})\s+([A-Za-zÀ-ÿ'’\-\s]{3,40})",
         text,
     )
+
     if postcode_match:
+        candidate = clean_text(postcode_match.group(2))
+
+        if candidate.lower() in BAD_LOCATION_WORDS:
+            return None
+
         return clean_text(postcode_match.group(0)) + ", Belgique"
 
     patterns = [
@@ -291,6 +325,10 @@ def extract_location_candidate(text):
         match = re.search(pattern, text, flags=re.IGNORECASE)
         if match:
             candidate = clean_text(match.group(1))
+
+            if candidate.lower() in BAD_LOCATION_WORDS:
+                continue
+
             if len(candidate) >= 3:
                 return candidate + ", Belgique"
 
@@ -354,9 +392,11 @@ def analyze_job(job):
             "location": None,
             "minutes": None,
             "time_status": None,
+            "contract_duration": "Durée non détectée",
         }
 
     time_status = detect_fulltime(full_text)
+    contract_duration = extract_contract_duration(full_text)
     location = extract_location_candidate(full_text)
 
     if not location:
@@ -365,6 +405,7 @@ def analyze_job(job):
             "location": None,
             "minutes": None,
             "time_status": time_status,
+            "contract_duration": contract_duration,
         }
 
     try:
@@ -376,23 +417,17 @@ def analyze_job(job):
                 "location": location,
                 "minutes": None,
                 "time_status": time_status,
+                "contract_duration": contract_duration,
             }
 
         minutes = driving_minutes_from_jodoigne(coords)
 
-        if minutes <= MAX_DRIVE_MINUTES:
-            return True, {
-                "reason": f"{minutes} min depuis Jodoigne",
-                "location": location,
-                "minutes": minutes,
-                "time_status": time_status,
-            }
-
-        return False, {
-            "reason": f"Trop loin : {minutes} min",
+        return True, {
+            "reason": f"{minutes} min depuis Jodoigne",
             "location": location,
             "minutes": minutes,
             "time_status": time_status,
+            "contract_duration": contract_duration,
         }
 
     except Exception:
@@ -401,6 +436,7 @@ def analyze_job(job):
             "location": location,
             "minutes": None,
             "time_status": time_status,
+            "contract_duration": contract_duration,
         }
 
 
@@ -436,6 +472,7 @@ def main():
                 "Nouvelle offre possible 👇\n\n"
                 f"{job['title']}\n\n"
                 f"Temps : {analysis.get('time_status')}\n"
+                f"Durée : {analysis.get('contract_duration')}\n"
                 f"Lieu : {analysis.get('location') or 'Non détecté'}\n"
                 f"Trajet : {analysis.get('reason')}\n\n"
                 f"{job['url']}"
