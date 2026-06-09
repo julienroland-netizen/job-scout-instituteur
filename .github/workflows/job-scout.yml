@@ -31,6 +31,7 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           ORS_API_KEY: ${{ secrets.ORS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python job_scout.py
 
       - name: Commit generated site
@@ -40,3 +41,4 @@ jobs:
           git add docs seen_jobs.json
           git commit -m "Update job listing site" || echo "No changes to commit"
           git push || echo "Nothing to push"
+          git add docs seen_jobs.json ai_cache.json
