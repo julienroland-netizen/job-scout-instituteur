@@ -1,6 +1,10 @@
 import json
 import os
+import re
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urljoin
+import html
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,7 +15,11 @@ ORS_API_KEY = os.environ["ORS_API_KEY"]
 
 SEEN_FILE = Path("seen_jobs.json")
 
-JODOIGNE_COORDS = [4.8697, 50.7236]  # lon, lat
+DOCS_DIR = Path("docs")
+JOBS_JSON = DOCS_DIR / "jobs.json"
+INDEX_HTML = DOCS_DIR / "index.html"
+
+JODOIGNE_COORDS = [4.8697, 50.7236]
 MAX_DRIVE_MINUTES = 60
 
 URLS = [
@@ -23,7 +31,18 @@ KEYWORDS_JOB = [
     "instituteur primaire",
     "institutrice primaire",
     "maître primaire",
+    "maitre primaire",
     "maitresse primaire",
+    "enseignant primaire",
+    "enseignante primaire",
+]
+
+KEYWORDS_FULLTIME = [
+    "temps plein",
+    "plein temps",
+    "24/24",
+    "full time",
+    "38h",
 ]
 
 
@@ -35,6 +54,148 @@ def load_seen():
 
 def save_seen(seen):
     SEEN_FILE.write_text(json.dumps(list(seen), indent=2))
+
+
+def load_public_jobs():
+    if JOBS_JSON.exists():
+        return json.loads(JOBS_JSON.read_text())
+    return []
+
+
+def save_public_jobs(jobs):
+    DOCS_DIR.mkdir(exist_ok=True)
+    JOBS_JSON.write_text(json.dumps(jobs, indent=2, ensure_ascii=False))
+
+
+def generate_site(jobs):
+    print("GENERATE_SITE CALLED")
+    print(f"Nombre d'offres dans le site : {len(jobs)}")
+
+    DOCS_DIR.mkdir(exist_ok=True)
+
+    rows = ""
+
+    if jobs:
+        for job in jobs:
+            title = html.escape(job.get("title", ""))
+            url = html.escape(job.get("url", ""))
+            location = html.escape(job.get("location", "Non détecté"))
+            drive_time = html.escape(job.get("drive_time", "À vérifier"))
+            time_status = html.escape(job.get("time_status", "Non confirmé"))
+            source = html.escape(job.get("source", ""))
+            found_at = html.escape(job.get("found_at", ""))
+
+            rows += f"""
+            <tr>
+                <td><a href="{url}" target="_blank">{title}</a></td>
+                <td>{location}</td>
+                <td>{drive_time}</td>
+                <td>{time_status}</td>
+                <td>{source}</td>
+                <td>{found_at}</td>
+            </tr>
+            """
+    else:
+        rows = """
+        <tr>
+            <td colspan="6">Aucune offre détectée pour le moment.</td>
+        </tr>
+        """
+
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    html_content = f"""
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Job Scout Instituteur</title>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f6f7f9;
+            color: #222;
+        }}
+        h1 {{
+            margin-bottom: 5px;
+        }}
+        .subtitle {{
+            color: #555;
+            margin-bottom: 20px;
+        }}
+        .meta {{
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }}
+        th, td {{
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }}
+        th {{
+            background: #222;
+            color: white;
+            text-align: left;
+        }}
+        a {{
+            color: #0057b8;
+            font-weight: bold;
+        }}
+    </style>
+</head>
+<body>
+    <h1>Job Scout Instituteur</h1>
+    <div class="subtitle">Offres détectées à maximum 1h de Jodoigne ou à vérifier manuellement.</div>
+    <div class="meta">Dernière mise à jour : {generated_at}</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Offre</th>
+                <th>Lieu</th>
+                <th>Trajet</th>
+                <th>Temps</th>
+                <th>Source</th>
+                <th>Détectée le</th>
+            </tr>
+        </thead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
+</body>
+</html>
+"""
+    print("Writing docs/index.html")
+    INDEX_HTML.write_text(html_content, encoding="utf-8")
+
+def update_public_site(new_matches):
+    public_jobs = load_public_jobs()
+
+    for job in new_matches:
+        analysis = job["analysis"]
+
+        public_jobs.insert(0, {
+            "title": job["title"],
+            "url": job["url"],
+            "source": job["source"],
+            "location": analysis.get("location") or "Non détecté",
+            "drive_time": analysis.get("reason") or "À vérifier",
+            "time_status": analysis.get("time_status") or "Non confirmé",
+            "found_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        })
+
+    public_jobs = public_jobs[:100]
+
+    save_public_jobs(public_jobs)
+    generate_site(public_jobs)
 
 
 def send_telegram(message):
@@ -53,17 +214,95 @@ def send_telegram(message):
 
 def fetch_html(url):
     headers = {"User-Agent": "Mozilla/5.0 JobScoutBot/1.0"}
-    response = requests.get(url, headers=headers, timeout=20)
+    response = requests.get(url, headers=headers, timeout=25)
     response.raise_for_status()
     return response.text
 
 
-def geocode_location(text):
+def clean_text(text):
+    return " ".join(text.replace("\n", " ").replace("\t", " ").split())
+
+
+def extract_possible_jobs(list_url):
+    html_page = fetch_html(list_url)
+    soup = BeautifulSoup(html_page, "html.parser")
+
+    jobs = {}
+
+    for a in soup.find_all("a", href=True):
+        text = clean_text(a.get_text(" ", strip=True))
+        href = urljoin(list_url, a["href"])
+
+        if len(text) < 5:
+            continue
+
+        surrounding = clean_text(a.parent.get_text(" ", strip=True)) if a.parent else text
+        combined = f"{text} {surrounding}".lower()
+
+        if any(keyword in combined for keyword in KEYWORDS_JOB):
+            jobs[href] = {
+                "title": text[:250] if text else surrounding[:250],
+                "url": href,
+                "source": list_url,
+            }
+
+    return list(jobs.values())
+
+
+def fetch_job_detail(job):
+    try:
+        html_page = fetch_html(job["url"])
+        soup = BeautifulSoup(html_page, "html.parser")
+
+        for tag in soup(["script", "style", "nav", "footer", "header"]):
+            tag.decompose()
+
+        detail_text = clean_text(soup.get_text(" ", strip=True))
+        job["detail_text"] = detail_text[:5000]
+        return job
+
+    except Exception as e:
+        job["detail_text"] = job["title"]
+        job["detail_error"] = str(e)
+        return job
+
+
+def detect_fulltime(text):
+    lower = text.lower()
+    if any(keyword in lower for keyword in KEYWORDS_FULLTIME):
+        return "Temps plein probable"
+    return "Temps non confirmé"
+
+
+def extract_location_candidate(text):
+    postcode_match = re.search(
+        r"\b([1-9][0-9]{3})\s+([A-Za-zÀ-ÿ'’\-\s]{3,40})",
+        text,
+    )
+    if postcode_match:
+        return clean_text(postcode_match.group(0)) + ", Belgique"
+
+    patterns = [
+        r"(?:lieu|localité|localite|commune|adresse|implantation)\s*[:\-]\s*([^\.|,;\n]{3,80})",
+        r"(?:à|a)\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ'’\-]+){0,3})",
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            candidate = clean_text(match.group(1))
+            if len(candidate) >= 3:
+                return candidate + ", Belgique"
+
+    return None
+
+
+def geocode_location(location_text):
     url = "https://api.openrouteservice.org/geocode/search"
 
     params = {
         "api_key": ORS_API_KEY,
-        "text": text,
+        "text": location_text,
         "boundary.country": "BE",
         "size": 1,
     }
@@ -94,7 +333,7 @@ def driving_minutes_from_jodoigne(destination_coords):
         ]
     }
 
-    response = requests.post(url, headers=headers, json=payload, timeout=20)
+    response = requests.post(url, headers=headers, json=payload, timeout=25)
     response.raise_for_status()
 
     data = response.json()
@@ -103,66 +342,66 @@ def driving_minutes_from_jodoigne(destination_coords):
     return round(seconds / 60)
 
 
-def extract_possible_jobs(url):
-    html = fetch_html(url)
-    soup = BeautifulSoup(html, "html.parser")
+def analyze_job(job):
+    full_text = f"{job.get('title', '')} {job.get('detail_text', '')}"
+    lower = full_text.lower()
 
-    jobs = []
-
-    for element in soup.find_all(["article", "div", "li", "a", "h2", "h3", "p"]):
-        text = " ".join(element.get_text(" ", strip=True).split())
-
-        if len(text) < 20:
-            continue
-
-        lower = text.lower()
-
-        if any(keyword in lower for keyword in KEYWORDS_JOB):
-            link = None
-
-            if element.name == "a" and element.get("href"):
-                link = element.get("href")
-            else:
-                a = element.find("a")
-                if a and a.get("href"):
-                    link = a.get("href")
-
-            if link and link.startswith("/"):
-                base = "/".join(url.split("/")[:3])
-                link = base + link
-
-            jobs.append({
-                "title": text[:300],
-                "url": link or url,
-                "source": url,
-            })
-
-    return jobs
-
-
-def is_match(job):
-    text = job["title"].lower()
-
-    has_job = any(keyword in text for keyword in KEYWORDS_JOB)
+    has_job = any(keyword in lower for keyword in KEYWORDS_JOB)
 
     if not has_job:
-        return False, None, "Pas instituteur primaire"
+        return False, {
+            "reason": "Pas instituteur primaire",
+            "location": None,
+            "minutes": None,
+            "time_status": None,
+        }
+
+    time_status = detect_fulltime(full_text)
+    location = extract_location_candidate(full_text)
+
+    if not location:
+        return True, {
+            "reason": "Lieu non détecté — à vérifier manuellement",
+            "location": None,
+            "minutes": None,
+            "time_status": time_status,
+        }
 
     try:
-        coords = geocode_location(job["title"])
+        coords = geocode_location(location)
 
         if coords is None:
-            return True, None, "Lieu non détecté — à vérifier"
+            return True, {
+                "reason": "Lieu trouvé mais non géocodé — à vérifier",
+                "location": location,
+                "minutes": None,
+                "time_status": time_status,
+            }
 
         minutes = driving_minutes_from_jodoigne(coords)
 
         if minutes <= MAX_DRIVE_MINUTES:
-            return True, minutes, f"{minutes} min depuis Jodoigne"
+            return True, {
+                "reason": f"{minutes} min depuis Jodoigne",
+                "location": location,
+                "minutes": minutes,
+                "time_status": time_status,
+            }
 
-        return False, minutes, f"Trop loin : {minutes} min"
+        return False, {
+            "reason": f"Trop loin : {minutes} min",
+            "location": location,
+            "minutes": minutes,
+            "time_status": time_status,
+        }
 
-    except Exception as e:
-        return True, None, f"Distance non calculée — à vérifier"
+    except Exception:
+        return True, {
+            "reason": "Distance non calculée — à vérifier",
+            "location": location,
+            "minutes": None,
+            "time_status": time_status,
+        }
 
 
 def main():
@@ -176,13 +415,13 @@ def main():
             jobs = extract_possible_jobs(url)
 
             for job in jobs:
-                job_id = job["url"] + "|" + job["title"]
+                job = fetch_job_detail(job)
+                job_id = job["url"]
 
-                match, drive_minutes, reason = is_match(job)
+                match, analysis = analyze_job(job)
 
                 if job_id not in seen and match:
-                    job["drive_minutes"] = drive_minutes
-                    job["reason"] = reason
+                    job["analysis"] = analysis
                     new_matches.append(job)
                     seen.add(job_id)
 
@@ -191,16 +430,22 @@ def main():
 
     if new_matches:
         for job in new_matches[:10]:
+            analysis = job["analysis"]
+
             message = (
                 "Nouvelle offre possible 👇\n\n"
                 f"{job['title']}\n\n"
-                f"Trajet : {job.get('reason', 'Non calculé')}\n\n"
+                f"Temps : {analysis.get('time_status')}\n"
+                f"Lieu : {analysis.get('location') or 'Non détecté'}\n"
+                f"Trajet : {analysis.get('reason')}\n\n"
                 f"{job['url']}"
             )
+
             send_telegram(message)
     else:
         print("Aucune nouvelle offre.")
 
+    update_public_site(new_matches)
     save_seen(seen)
 
 
