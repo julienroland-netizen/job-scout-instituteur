@@ -9,7 +9,7 @@
     "contract_duration": "Du 07/10/2026 au 16/10/2026",
     "contract_type": "intérim",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:31"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Waterloo",
@@ -21,7 +21,7 @@
     "contract_duration": "jusqu'au 2 juillet 2027",
     "contract_type": "intérim",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:31"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Saint-Josse-ten-Noode",
@@ -29,11 +29,11 @@
     "source": "JobEcole",
     "location": "Saint-Josse-ten-Noode",
     "drive_time": "45 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
+    "time_status": "Temps plein",
     "contract_duration": "du 03/11/2026 au 02/07/2027",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:32"
+    "contract_type": "intérim",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Bruxelles",
@@ -45,7 +45,7 @@
     "contract_duration": "Du 15/10/2026 au 15/12/2026",
     "contract_type": "intérim",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:32"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Jette",
@@ -54,10 +54,10 @@
     "location": "Jette",
     "drive_time": "50 min depuis Jodoigne",
     "time_status": "Temps plein probable",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:32"
+    "contract_duration": "Du 06/10/2026 au 16/10/2026",
+    "contract_type": "intérim",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Jette",
@@ -69,7 +69,7 @@
     "contract_duration": "Du 06/10/2026 au 18/12/2026, prolongation possible",
     "contract_type": "intérim",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:32"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Jumet",
@@ -77,11 +77,11 @@
     "source": "JobEcole",
     "location": "Jumet",
     "drive_time": "51 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:33"
+    "time_status": "temps partiel",
+    "contract_duration": "Du 05/10/2026 au 18/12/2026",
+    "contract_type": "intérim",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Ixelles",
@@ -93,7 +93,7 @@
     "contract_duration": "Du 03/11/2026 au 02/07/2027",
     "contract_type": "CDD",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:33"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Charleroi (Pourvu)",
@@ -105,7 +105,7 @@
     "contract_duration": "Du 05/10/2026 au 30/10/2026, remplacement",
     "contract_type": "remplacement",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:33"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Courcelles",
@@ -117,7 +117,7 @@
     "contract_duration": "Du 01/10/2026 au 02/07/2027",
     "contract_type": "CDD",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:34"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Yvoir (Pourvu)",
@@ -126,10 +126,10 @@
     "location": "Yvoir",
     "drive_time": "52 min depuis Jodoigne",
     "time_status": "Temps plein probable",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:34"
+    "contract_duration": "Du 29/09/2026 au 30/11/2026 minimum, avec prolongation prévue",
+    "contract_type": "remplacement",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Wezembeek-Oppem",
@@ -137,11 +137,11 @@
     "source": "JobEcole",
     "location": "Wezembeek-Oppem",
     "drive_time": "39 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:35"
+    "time_status": "Temps plein",
+    "contract_duration": "Du 19/10/2026 au 30/10/2026",
+    "contract_type": "intérim",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Jette",
@@ -153,7 +153,7 @@
     "contract_duration": "jusqu'au 2 juillet 2027",
     "contract_type": "Type non détecté",
     "ai_confidence": "",
-    "found_at": "2026-10-07 15:35"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Marcinelle (Pourvu)",
@@ -165,7 +165,7 @@
     "contract_duration": "Du 16/09/2026 au 16/10/2026",
     "contract_type": "remplacement",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:35"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Woluwe-Saint-Lambert",
@@ -177,7 +177,7 @@
     "contract_duration": "Du 17/09/2026 au 16/10/2026",
     "contract_type": "remplacement",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:35"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Yvoir (Pourvu)",
@@ -189,7 +189,7 @@
     "contract_duration": "du 01/10/26 au 24/11/26",
     "contract_type": "remplacement",
     "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:35"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Braine-l'Alleud",
@@ -197,11 +197,11 @@
     "source": "JobEcole",
     "location": "Braine-l'Alleud",
     "drive_time": "46 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:36"
+    "time_status": "temps partiel",
+    "contract_duration": "Du 09/09/2026 au 02/07/2027",
+    "contract_type": "intérim",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Berchem-Sainte-Agathe",
@@ -209,11 +209,11 @@
     "source": "JobEcole",
     "location": "Berchem-Sainte-Agathe",
     "drive_time": "50 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
-    "contract_duration": "Durée non détectée",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:37"
+    "time_status": "Temps partiel",
+    "contract_duration": "Du 09/09/2026 au 02/07/2027",
+    "contract_type": "CDD",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Woluwe-Saint-Lambert",
@@ -225,7 +225,7 @@
     "contract_duration": "Durée non détectée",
     "contract_type": "Type non détecté",
     "ai_confidence": "",
-    "found_at": "2026-10-07 15:37"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Genappe",
@@ -233,11 +233,11 @@
     "source": "JobEcole",
     "location": "Genappe",
     "drive_time": "35 min depuis Jodoigne",
-    "time_status": "Temps non confirmé",
+    "time_status": "temps partiel",
     "contract_duration": "du 02/09/2026 au 30/09/2026",
-    "contract_type": "Type non détecté",
-    "ai_confidence": "",
-    "found_at": "2026-10-07 15:38"
+    "contract_type": "remplacement",
+    "ai_confidence": 1.0,
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Ophain-Bois-Seigneur-Isaac",
@@ -249,7 +249,7 @@
     "contract_duration": "jusqu'au 02 juillet 2027",
     "contract_type": "Type non détecté",
     "ai_confidence": "",
-    "found_at": "2026-10-07 15:38"
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Woluwe-Saint-Lambert",
@@ -257,11 +257,11 @@
     "source": "JobEcole",
     "location": "Woluwe-Saint-Lambert",
     "drive_time": "42 min depuis Jodoigne",
-    "time_status": "temps partiel",
-    "contract_duration": "Du 24/08/2026 au 16/10/2026",
-    "contract_type": "remplacement",
-    "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:38"
+    "time_status": "Temps non confirmé",
+    "contract_duration": "Durée non détectée",
+    "contract_type": "Type non détecté",
+    "ai_confidence": "",
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Schaerbeek",
@@ -269,11 +269,11 @@
     "source": "JobEcole",
     "location": "Schaerbeek",
     "drive_time": "17 min depuis Jodoigne",
-    "time_status": "Temps plein",
+    "time_status": "Temps non confirmé",
     "contract_duration": "jusqu'au 02/07/2027",
-    "contract_type": "intérim",
-    "ai_confidence": 0.95,
-    "found_at": "2026-10-07 15:39"
+    "contract_type": "Type non détecté",
+    "ai_confidence": "",
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Recherche instituteur primaire à Marcinelle (Pourvu)",
@@ -281,11 +281,11 @@
     "source": "JobEcole",
     "location": "Marcinelle",
     "drive_time": "54 min depuis Jodoigne",
-    "time_status": "Temps plein",
+    "time_status": "Temps non confirmé",
     "contract_duration": "du 24/08/26 au 02/07/2027",
-    "contract_type": "CDD",
-    "ai_confidence": 1.0,
-    "found_at": "2026-10-07 15:39"
+    "contract_type": "Type non détecté",
+    "ai_confidence": "",
+    "found_at": "2026-10-07 20:46"
   },
   {
     "title": "Aller au contenu principal",
@@ -297,6 +297,6 @@
     "contract_duration": "Remplacements divers, durées variables selon le poste, fin maximale au 02/07/2027",
     "contract_type": "remplacement",
     "ai_confidence": 0.9,
-    "found_at": "2026-10-07 15:39"
+    "found_at": "2026-10-07 20:47"
   }
 ]
